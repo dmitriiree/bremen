@@ -153,11 +153,30 @@
   .flash { position: fixed; inset: 0; background: #fff; z-index: 999; }
   .rec .wrap { height: 720px; overflow: hidden; }
   #mark { position: fixed; left: 0; right: 0; top: 720px; height: 16px; background: #000; }  /* line-id strip, cropped from the mp4 */
-  @media (max-width: 640px) { .controls button, .controls select, .controls label { font-size: 13px; padding: 6px 9px; } }
+  /* ?record&vertical — phone mp4 (1080x1920): title, 16:9 stage, big KO/RU/EN subtitles */
+  .vhead { display: none; }
+  body.recv { padding: 0; overflow: hidden; }
+  .recv .wrap { max-width: none; width: 1080px; height: 1920px; display: flex; flex-direction: column; overflow: hidden; }
+  .recv .vhead { display: flex; order: 0; height: 330px; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .recv .vhead h1 { margin: 0; font-size: 84px; }
+  .recv .vhead .t2 { color: #ffe9b0; font-size: 34px; margin-top: 10px; }
+  .recv .vhead .ch { color: var(--accent); font-size: 36px; margin-top: 26px; min-height: 1.3em; }
+  .recv .stage { order: 1; flex: none; border-radius: 0; box-shadow: none; aspect-ratio: 16 / 9; height: auto; }
+  .recv .progress { order: 2; margin: 0; border-radius: 0; height: 10px; }
+  .recv .sub { order: 3; flex: 1; margin: 0; border-radius: 0; padding: 50px 64px; display: flex; flex-direction: column; justify-content: center; gap: 22px; height: auto; }
+  .recv .sub .who { font-size: 40px; } .recv .sub .cue { font-size: 32px; }
+  .recv .sub .ko { font-size: 70px; line-height: 1.3; margin: 0; }
+  .recv .sub .ruline { font-size: 46px; line-height: 1.3; } .recv .sub .enline { font-size: 42px; line-height: 1.3; }
+  .recv .action { font-size: 30px; } .recv .card .ru, .recv .card .en { font-size: 32px; } .recv .actor .tag { font-size: 24px; }
+  .recv .controls, .recv .note, .recv .title { display: none !important; }
+  .recv #mark { top: 1920px; }
+  @media (max-width: 640px) { .controls button, .controls select, .controls label { font-size: 13px; padding: 6px 9px; }
+    .yourturn { font-size: 16px; padding: .8em 1.3em; bottom: 4%; max-width: 92%; } }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="vhead"><h1>브레멘 음악대</h1><div class="t2">Бременские музыканты · The Bremen Town Musicians</div><div class="ch" id="vch"></div></div>
   <div class="stage" id="stage">
     <div class="bg" id="bgA"></div><div class="bg" id="bgB" style="opacity:0"></div>
     <div class="tint" id="tint"></div>
@@ -198,7 +217,7 @@
   </div>
 </div>
 
-<script src="data/story.js?v=9"></script>
+<script src="data/story.js?v=10"></script>
 <script>
 (() => {
   const S = window.STORY;
@@ -212,7 +231,7 @@
   const BG = { forest: 'img/bg-forest.jpg', night: 'img/bg-night.jpg' };
   const VIEW = { left: 'left bottom', right: 'right bottom', center: 'center bottom' };
 
-  const IMG_V = '?v=9';                    // bump after re-cutting sprites / re-voicing so browsers drop cached copies
+  const IMG_V = '?v=10';                    // bump after re-cutting sprites / re-voicing so browsers drop cached copies
   function spriteFor(id, pose) {
     if (id === 'donkey' || id === 'dog') return `img/${id}-${pose === 'sad' ? 'sad' : 'happy'}.png${IMG_V}`;
     if (ROBBERS.includes(id)) return `img/robber-${pose === 'scared' ? 'scared' : 'smug'}.png${IMG_V}`;
@@ -235,22 +254,24 @@
   // Interface language follows the translation checkboxes: EN -> English, only RU -> Russian, none -> Korean.
   const UI = {
     en: { tagline: 'The Bremen Town Musicians · a play for kids', go: '▶ 시작 · Start', press: 'Press “Start”.',
-          again: '🔁 Again', sounds: 'Sounds', iplay: '🎭 I play', yourturn: '🎤 Your turn — say it, then press Space',
+          again: '🔁 Again', sounds: 'Sounds', iplay: '🎭 I play', yourturn: '🎤 Your turn — say it, then press Space', yourturnTouch: '🎤 Your turn — say it, then tap here',
           chapter: n => `${n}장 · Chapter ${n}`, },
     ru: { tagline: 'Бременские музыканты · сказка для сценки', go: '▶ 시작 · Начать', press: 'Нажмите «Начать».',
-          again: '🔁 Ещё раз', sounds: 'Звуки', iplay: '🎭 Я играю', yourturn: '🎤 Твоя очередь — скажи и нажми пробел',
+          again: '🔁 Ещё раз', sounds: 'Звуки', iplay: '🎭 Я играю', yourturn: '🎤 Твоя очередь — скажи и нажми пробел', yourturnTouch: '🎤 Твоя очередь — скажи и нажми сюда',
           chapter: n => `${n}장 · Глава ${n}`, },
     ko: { tagline: '어린이 연극', go: '▶ 시작', press: '“시작”을 누르세요.',
-          again: '🔁 다시', sounds: '효과음', iplay: '🎭 내 역할', yourturn: '🎤 내 차례 — 말한 다음 스페이스를 누르세요',
+          again: '🔁 다시', sounds: '효과음', iplay: '🎭 내 역할', yourturn: '🎤 내 차례 — 말한 다음 스페이스를 누르세요', yourturnTouch: '🎤 내 차례 — 말한 다음 여기를 누르세요',
           chapter: n => `${n}장`, },
   };
   let lang = 'en', lastLine = null, lastChapter = null;
   const nameIdx = () => ({ ru: 1, en: 2 })[lang];
-  function speakerName(role) { const n = S.names[role], k = nameIdx(); return k ? `${n[0]} · ${n[k]}` : n[0]; }
+  function speakerName(role) { const n = S.names[role], k = nameIdx();
+    if (document.body.classList.contains('recv')) return `${n[0]} · ${n[1]} · ${n[2]}`;
+    return k ? `${n[0]} · ${n[k]}` : n[0]; }
   function applyLang() {
     const T = UI[lang]; document.documentElement.lang = lang;
     $('tagline').textContent = T.tagline; $('go').textContent = T.go; $('again').textContent = T.again;
-    $('sfxLabel').textContent = T.sounds; $('yourturn').textContent = T.yourturn;
+    $('sfxLabel').textContent = T.sounds; $('yourturn').textContent = matchMedia('(pointer: coarse)').matches ? T.yourturnTouch : T.yourturn;
     [...$('me').options].forEach(o => { o.textContent = `${T.iplay}: ${o.value ? speakerName(o.value) : '—'}`; });
     [...$('chapters').children].forEach((b, k) => { const c = items[chapterIdx[k]]; b.title = lang === 'ko' ? c.text : c[lang]; });
     if (lastLine) $('who').textContent = speakerName(lastLine.role); else $('ko').textContent = T.press;
@@ -484,7 +505,7 @@
         const c = $('card'); lastChapter = it; c.querySelector('.num').textContent = UI[lang].chapter(it.num);
         c.querySelector('.ko').textContent = it.text; c.querySelector('.ru').textContent = it.ru;
         c.querySelector('.en').textContent = it.en || '';
-        c.classList.add('show'); sfx('stars');
+        c.classList.add('show'); sfx('stars'); $('vch').textContent = `${it.num}장 · ${it.text}`;
         [...$('chapters').children].forEach((b, k) => b.classList.toggle('on', k === it.num - 1));
         if (!await wait(2600 / speed, t)) return;
         c.classList.remove('show');
@@ -615,6 +636,10 @@
   });
 
   if (REC) {                              // mp4 render: white sync flash, then autoplay
+    if (/[?&]vertical/.test(location.search)) {   // phone version: all three languages
+      document.body.classList.add('recv'); $('ruToggle').checked = $('enToggle').checked = true; applyTrans();
+      $('ko').textContent = ''; $('who').textContent = '';
+    }
     document.body.classList.add('rec'); $('sfxToggle').checked = false;
     const m = document.createElement('div'); m.id = 'mark'; document.body.appendChild(m);
     setTimeout(start, 1500);
