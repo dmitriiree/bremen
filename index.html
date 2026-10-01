@@ -212,7 +212,6 @@
     </select>
     <label title="Russian translation"><input type="checkbox" id="ruToggle" checked> RU</label>
     <label title="English subtitles"><input type="checkbox" id="enToggle"> EN</label>
-    <label><input type="checkbox" id="sfxToggle" checked> <span id="sfxLabel"></span></label>
     <div class="chapters" id="chapters"></div>
   </div>
 </div>
@@ -254,13 +253,13 @@
   // Interface language follows the translation checkboxes: EN -> English, only RU -> Russian, none -> Korean.
   const UI = {
     en: { tagline: 'The Bremen Town Musicians · a play for kids', go: '▶ 시작 · Start', press: 'Press “Start”.',
-          again: '🔁 Again', sounds: 'Sounds', iplay: '🎭 I play', yourturn: '🎤 Your turn — say it, then press Space', yourturnTouch: '🎤 Your turn — say it, then tap here',
+          again: '🔁 Again', iplay: '🎭 I play', yourturn: '🎤 Your turn — say it, then press Space', yourturnTouch: '🎤 Your turn — say it, then tap here',
           chapter: n => `${n}장 · Chapter ${n}`, },
     ru: { tagline: 'Бременские музыканты · сказка для сценки', go: '▶ 시작 · Начать', press: 'Нажмите «Начать».',
-          again: '🔁 Ещё раз', sounds: 'Звуки', iplay: '🎭 Я играю', yourturn: '🎤 Твоя очередь — скажи и нажми пробел', yourturnTouch: '🎤 Твоя очередь — скажи и нажми сюда',
+          again: '🔁 Ещё раз', iplay: '🎭 Я играю', yourturn: '🎤 Твоя очередь — скажи и нажми пробел', yourturnTouch: '🎤 Твоя очередь — скажи и нажми сюда',
           chapter: n => `${n}장 · Глава ${n}`, },
     ko: { tagline: '어린이 연극', go: '▶ 시작', press: '“시작”을 누르세요.',
-          again: '🔁 다시', sounds: '효과음', iplay: '🎭 내 역할', yourturn: '🎤 내 차례 — 말한 다음 스페이스를 누르세요', yourturnTouch: '🎤 내 차례 — 말한 다음 여기를 누르세요',
+          again: '🔁 다시', iplay: '🎭 내 역할', yourturn: '🎤 내 차례 — 말한 다음 스페이스를 누르세요', yourturnTouch: '🎤 내 차례 — 말한 다음 여기를 누르세요',
           chapter: n => `${n}장`, },
   };
   let lang = 'en', lastLine = null, lastChapter = null;
@@ -271,7 +270,7 @@
   function applyLang() {
     const T = UI[lang]; document.documentElement.lang = lang;
     $('tagline').textContent = T.tagline; $('go').textContent = T.go; $('again').textContent = T.again;
-    $('sfxLabel').textContent = T.sounds; $('yourturn').textContent = matchMedia('(pointer: coarse)').matches ? T.yourturnTouch : T.yourturn;
+    $('yourturn').textContent = matchMedia('(pointer: coarse)').matches ? T.yourturnTouch : T.yourturn;
     [...$('me').options].forEach(o => { o.textContent = `${T.iplay}: ${o.value ? speakerName(o.value) : '—'}`; });
     [...$('chapters').children].forEach((b, k) => { const c = items[chapterIdx[k]]; b.title = lang === 'ko' ? c.text : c[lang]; });
     if (lastLine) $('who').textContent = speakerName(lastLine.role); else $('ko').textContent = T.press;
@@ -321,7 +320,7 @@
     walk(t = 0) { for (let i = 0; i < 6; i++) { const o = tone(90, t + i * .32, .12, 'sine', .12, .005); } },
     whoosh(t = 0) { noise(t, .5, .15, 1200); },
   };
-  function sfx(name) { if (!$('sfxToggle').checked || !SFX[name]) return; try { SFX[name](0); } catch (e) {} }
+  function sfx(name) { if (REC || !SFX[name]) return; try { SFX[name](0); } catch (e) {} }   // the mp4 render keeps only voices
 
   // ---------- stage building ----------
   function makeActor(id) {
@@ -477,12 +476,27 @@
   }
 
   // ---------- subtitles ----------
+  function fillSub(root, it) {
+    const [who, cue] = root.querySelector('.who').children;
+    who.textContent = speakerName(it.role); who.style.color = COLORS[it.role];
+    cue.innerHTML = it.cue ? `(${it.cue}<span class="r"> · ${it.cue_ru}</span><span class="e"> · ${it.cue_en}</span>)` : '';
+    root.querySelector('.ko').textContent = it.text; root.querySelector('.ruline').textContent = it.ru;
+    root.querySelector('.enline').textContent = it.en || '';
+  }
+  // Keep the subtitle panel as tall as the longest line, so the controls below never jump.
+  function fitSub() {
+    if (REC) return;
+    const sub = $('sub'), probe = sub.cloneNode(true);
+    probe.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); probe.removeAttribute('id');
+    Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', left: '0', top: '0', minHeight: '0',
+                                 width: sub.getBoundingClientRect().width + 'px' });
+    document.body.appendChild(probe);
+    let max = 0; lineItems.forEach(it => { fillSub(probe, it); max = Math.max(max, probe.getBoundingClientRect().height); });
+    probe.remove(); sub.style.minHeight = Math.ceil(max) + 'px';
+  }
+  let fitTimer; addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitSub, 150); });
   function showSub(it, speakers) {
-    const name = S.names[it.role];
-    lastLine = it; $('who').textContent = speakerName(it.role);
-    $('who').style.color = COLORS[it.role];
-    $('cue').innerHTML = it.cue ? `(${it.cue}<span class="r"> · ${it.cue_ru}</span><span class="e"> · ${it.cue_en}</span>)` : '';
-    $('ko').textContent = it.text; $('ru').textContent = it.ru; $('en').textContent = it.en || '';
+    lastLine = it; fillSub($('sub'), it);
     Object.values(actors).forEach(a => a.el.classList.toggle('speaking', speakers.includes(a.id)));
     const n = lineItems.indexOf(it) + 1;
     $('bar').style.width = (n / lineItems.length * 100) + '%';
@@ -620,6 +634,7 @@
     document.body.classList.toggle('hide-ru', !ru);
     document.body.classList.toggle('hide-en', !en);
     try { localStorage.setItem('bremen-trans', JSON.stringify({ ru, en })); } catch (e) {}
+    fitSub();
   }
   try {
     const saved = JSON.parse(localStorage.getItem('bremen-trans') || 'null');
@@ -640,7 +655,7 @@
       document.body.classList.add('recv'); $('ruToggle').checked = $('enToggle').checked = true; applyTrans();
       $('ko').textContent = ''; $('who').textContent = '';
     }
-    document.body.classList.add('rec'); $('sfxToggle').checked = false;
+    document.body.classList.add('rec');
     const m = document.createElement('div'); m.id = 'mark'; document.body.appendChild(m);
     setTimeout(start, 1500);
   }
