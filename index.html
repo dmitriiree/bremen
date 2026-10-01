@@ -170,7 +170,13 @@
   .recv .action { font-size: 30px; } .recv .card .ru, .recv .card .en { font-size: 32px; } .recv .actor .tag { font-size: 24px; }
   .recv .controls, .recv .note, .recv .title { display: none !important; }
   .recv #mark { top: 1920px; }
-  @media (max-width: 640px) { .controls button, .controls select, .controls label { font-size: 13px; padding: 6px 9px; }
+  @media (max-width: 640px) { .controls button, .controls select, .controls label { font-size: 13px; padding: 6px 4px; }
+    /* phone: a 5-column grid across the full width */
+    .controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .controls > *, .chapters button { width: 100%; min-width: 0 !important; justify-content: center; text-align: center; }
+    #me { grid-column: span 3; text-align: left; padding-left: 8px; }
+    .chapters { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    #again .lbl { display: none; }
     .yourturn { font-size: 16px; padding: .8em 1.3em; bottom: 4%; max-width: 92%; } }
 </style>
 </head>
@@ -269,7 +275,7 @@
     return k ? `${n[0]} · ${n[k]}` : n[0]; }
   function applyLang() {
     const T = UI[lang]; document.documentElement.lang = lang;
-    $('tagline').textContent = T.tagline; $('go').textContent = T.go; $('again').textContent = T.again;
+    $('tagline').textContent = T.tagline; $('go').textContent = T.go; $('again').innerHTML = T.again.replace(/^(\S+) (.*)$/, '$1<span class="lbl"> $2</span>');
     $('yourturn').textContent = matchMedia('(pointer: coarse)').matches ? T.yourturnTouch : T.yourturn;
     [...$('me').options].forEach(o => { o.textContent = `${T.iplay}: ${o.value ? speakerName(o.value) : '—'}`; });
     [...$('chapters').children].forEach((b, k) => { const c = items[chapterIdx[k]]; b.title = lang === 'ko' ? c.text : c[lang]; });
